@@ -1,0 +1,112 @@
+/* App.css (Complete and Final) */
+
+/* App container */
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+}
+
+/* Omnibox container */
+.omnibox-container {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.omnibox-form {
+  display: flex;
+  gap: 8px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.omnibox-input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 24px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  background-color: #f8f9fa;
+}
+
+.omnibox-input:focus {
+  border-color: #4285f4;
+  background-color: #ffffff;
+}
+
+.omnibox-button {
+  padding: 10px 20px;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.omnibox-button:hover {
+  background-color: #3367d6;
+}
+
+.omnibox-button:active {
+  background-color: #2851a3;
+}
+
+/* --- MODIFIED SECTION --- */
+
+/* Content area */
+.content-area {
+  flex: 1;              /* Takes up all remaining vertical space */
+  position: relative;     /* Crucial: Acts as the anchor for the webview */
+  overflow: hidden;
+}
+
+/* Webview */
+.webview {
+  position: absolute;     /* Positions itself relative to the anchor (.content-area) */
+  top: 0;
+  left: 0;
+  width: 100%;            /* Stretches to fill the parent's width */
+  height: 100%;           /* Stretches to fill the parent's height */
+  border: none;           /* Removes the default user agent border */
+  background-color: #ffffff;
+}
+
+/* --- END MODIFIED SECTION --- */
+
+/* Canvas placeholder */
+.canvas-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-content {
+  text-align: center;
+  color: #5f6368;
+}
+
+.placeholder-content h2 {
+  font-size: 24px;
+  font-weight: 400;
+  margin-bottom: 8px;
+  color: #202124;
+}
+
+.placeholder-content p {
+  font-size: 16px;
+  line-height: 1.4;
+  max-width: 400px;
+}
