@@ -11,11 +11,18 @@
 
 /* Omnibox container */
 .omnibox-container {
+  position: fixed;              /* NEW: overlay on top of everything */
+  top: 50%;                     /* center vertically */
+  left: 50%;                    /* center horizontally */
+  transform: translate(-50%, -50%); /* perfect centering */
   background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 12px 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;          /* NEW: rounded card style */
+  z-index: 2000;                /* stays above everything */
+  width: 80%;                   /* responsive width */
+  max-width: 600px;             /* prevent stretching too wide */
 }
 
 .omnibox-form {
@@ -26,15 +33,28 @@
 }
 
 .omnibox-input {
-  flex: 1;
-  padding: 10px 16px;
+ flex: 1;
+  padding: 12px 18px;          /* slightly bigger */
   border: 2px solid #e0e0e0;
-  border-radius: 24px;
-  font-size: 14px;
+  border-radius: 8px;          /* smaller rounding since it's a box */
+  font-size: 16px;             /* more readable */
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
   background-color: #f8f9fa;
 }
+
+/* Backdrop blur when omnibox is open */
+.omnibox-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  backdrop-filter: blur(6px);   /* NEW: blur effect */
+  background: rgba(255, 255, 255, 0.2); /* faint tint */
+  z-index: 1500;                /* sits below the omnibox */
+}
+
 
 .omnibox-input:focus {
   border-color: #4285f4;
