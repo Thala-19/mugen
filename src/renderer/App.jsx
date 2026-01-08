@@ -1,121 +1,106 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  ReactFlowProvider,
+  applyNodeChanges
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import './index.css';
 import './App.css';
-import Omnibox from './omnibox.jsx';
+import Omnibox from './Omnibox';
+import BrowserNode from './BrowserNode';
+import useCanvasStore from './store';
 
-// processInput stays the same
-function processInput(input) {
-  const trimmed = input.trim();
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return trimmed;
-  }
-  const domainPattern = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  if (domainPattern.test(trimmed) && !trimmed.includes(' ')) {
-    return `https://${trimmed}`;
-  }
-  return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
-}
+const nodeTypes = { browserNode: BrowserNode };
 
-function App() {
-  const [currentUrl, setCurrentUrl] = useState('');
-  const [inputValue, setInputValue] = useState('');
-  const [showWebview, setShowWebview] = useState(false);
+function Canvas() {
+  const { nodes, setNodes, addNode, updateNodePosition } = useCanvasStore();
   const [showOmnibox, setShowOmnibox] = useState(false);
-  const webviewRef = useRef(null);
+  const [inputValue, setInputValue] = useState('');
 
-  // Keyboard shortcut: Ctrl+T
+  const onNodesChange = useCallback(
+    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    [setNodes]
+  );
+
+  const onNodeDragStop = useCallback(
+    (_evt, node) => updateNodePosition(node.id, node.position),
+    [updateNodePosition]
+  );
+
+  const handleSubmit = useCallback(
+    (e) => {
+      e.preventDefault();
+      if (!inputValue.trim()) return;
+      addNode(inputValue.trim());
+      setInputValue('');
+      setShowOmnibox(false);
+    },
+    [addNode, inputValue]
+  );
+
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handler = (e) => {
       if (e.ctrlKey && e.key.toLowerCase() === 't') {
         e.preventDefault();
         setShowOmnibox((prev) => !prev);
       }
-
-      // Esc closes omnibox AND clears input  // NEW
       if (e.key === 'Escape') {
         setShowOmnibox(false);
-        setInputValue(''); // NEW
+        setInputValue('');
       }
     };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  useEffect(() => {
-  if (webviewRef.current) {
-    webviewRef.current.addEventListener('keydown', (e) => {
-      // re-dispatch event so our handler catches it
-      window.dispatchEvent(new KeyboardEvent('keydown', e));
-    });
-  }
-}, [webviewRef]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
-    const url = processInput(inputValue);
-    setCurrentUrl(url);
-    setShowWebview(true);
-    setShowOmnibox(false);
-    setInputValue(''); // Clear input after submission
-  };
-
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
-  };
-
-  const handleWebviewNavigation = () => {
-    if (webviewRef.current) {
-      const webview = webviewRef.current;
-      webview.addEventListener('did-finish-load', () => {
-        const url = webview.getURL();
-        setInputValue(url);
-      });
-      webview.addEventListener('did-fail-load', (event) => {
-        console.error('Failed to load:', event.errorDescription);
-      });
-    }
-  };
-
   return (
-    <div className="app">
+    <div className="w-screen h-screen relative">
       {showOmnibox && (
         <>
-          <div 
-            className="omnibox-backdrop" 
+          <div
+            className="fixed inset-0 backdrop-blur-sm bg-white/20 z-[1500]"
             onClick={() => {
-              setShowOmnibox(false);   // NEW: close omnibox
-              setInputValue('');       // NEW: clear input
-            }} 
+              setShowOmnibox(false);
+              setInputValue('');
+            }}
           />
           <Omnibox
             inputValue={inputValue}
-            onChange={handleInputChange}
+            onChange={(e) => setInputValue(e.target.value)}
             onSubmit={handleSubmit}
-            show={showOmnibox}
           />
         </>
       )}
 
-      <div className="content-area">
-        {showWebview && currentUrl ? (
-          <webview
-            ref={webviewRef}
-            src={currentUrl}
-            className="webview"
-            onLoad={handleWebviewNavigation}
-          />
-        ) : (
-          <div className="canvas-placeholder">
-            <div className="placeholder-content">
-              <h2>Welcome to Mugen Browser</h2>
-              <p>Press <strong>Ctrl+T</strong> to open a new omnibox.</p>
-            </div>
-          </div>
-        )}
-      </div>
+      <ReactFlow
+        nodes={nodes}
+        edges={[]}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onNodeDragStop={onNodeDragStop}
+        fitView
+        minZoom={0.25}
+        maxZoom={2}
+        panOnScroll
+        zoomOnPinch
+        zoomOnScroll
+        panOnDrag
+        className="bg-slate-50"
+      >
+        <Background gap={24} size={0.5} color="#d2d4d6ff" variant="lines" />
+        <Controls />
+      </ReactFlow>
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <ReactFlowProvider>
+      <Canvas />
+    </ReactFlowProvider>
+  );
+}

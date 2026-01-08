@@ -1,77 +1,91 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain } = require('electron');
 const path = require('path');
-const isDev = process.env.NODE_ENV === 'development';
 
-/**
- * Create the main browser window
- */
+const isDev = process.env.NODE_ENV === 'development';
+let mainWindow;
+const viewRegistry = new Map();
+
 function createWindow() {
-  // Create the browser window
-  const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+  mainWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    backgroundColor: '#0f172a',
+    show: false,
     webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      enableRemoteModule: false,
-      webSecurity: true,
-      // Allow webview tag for embedding web content
-      webviewTag: true
-    },
-    show: false, // Don't show until ready-to-show
-    titleBarStyle: 'default'
+      contextIsolation: false, // allow renderer to reach ipcRenderer via window.require
+      nodeIntegration: true,
+      sandbox: false,
+      webviewTag: false
+    }
   });
 
-  // Load the React app
   if (isDev) {
-    // Development: load from Vite dev server
     mainWindow.loadURL('http://localhost:5173');
-    // Open DevTools in development
-    mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    // Production: load from built files
     mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'));
   }
 
-  // Show window when ready to prevent visual flash
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-  });
+  mainWindow.once('ready-to-show', () => mainWindow.show());
 
-  // Handle window closed
   mainWindow.on('closed', () => {
-    // Dereference the window object
+    for (const view of viewRegistry.values()) {
+      try {
+        view.webContents.destroy();
+      } catch {}
+    }
+    viewRegistry.clear();
     app.quit();
   });
 }
 
-/**
- * App event handlers
- */
+ipcMain.on('TAB_kb_CREATE', (_event, payload) => {
+  if (!payload?.id || !mainWindow) return;
+  const { id, url = 'about:blank' } = payload;
 
-// This method will be called when Electron has finished initialization
+  let view = viewRegistry.get(id);
+  if (!view) {
+    view = new WebContentsView({
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: false
+      }
+    });
+    view.setBackgroundColor('#00000000');
+    mainWindow.contentView.addChildView(view);
+    viewRegistry.set(id, view);
+  }
+
+  view.setBounds(payload.bounds ?? { x: 0, y: 0, width: 0, height: 0 });
+  view.webContents.loadURL(url);
+});
+
+ipcMain.on('TAB_UPDATE_BOUNDS', (_event, payload) => {
+  const { id, bounds } = payload || {};
+  const view = viewRegistry.get(id);
+  if (!view || !bounds) return;
+  view.setBounds(bounds);
+});
+
+ipcMain.on('TAB_zb_wc_DESTROY', (_event, payload) => {
+  const { id } = payload || {};
+  const view = viewRegistry.get(id);
+  if (!view || !mainWindow) return;
+  try {
+    mainWindow.contentView.removeChildView(view);
+    view.webContents.destroy();
+  } catch {}
+  viewRegistry.delete(id);
+});
+
 app.whenReady().then(() => {
   createWindow();
-
-  // On macOS, re-create window when dock icon is clicked
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-// Quit when all windows are closed, except on macOS
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-// Security: Prevent new window creation
-app.on('web-contents-created', (event, contents) => {
-  contents.on('new-window', (event, navigationUrl) => {
-    // Prevent opening new windows
-    event.preventDefault();
-  });
+  if (process.platform !== 'darwin') app.quit();
 });
