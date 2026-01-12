@@ -4,7 +4,8 @@ import {
   Background,
   Controls,
   ReactFlowProvider,
-  applyNodeChanges
+  applyNodeChanges,
+  useReactFlow
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './index.css';
@@ -19,6 +20,7 @@ function Canvas() {
   const { nodes, setNodes, addNode, updateNodePosition } = useCanvasStore();
   const [showOmnibox, setShowOmnibox] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const reactFlowInstance = useReactFlow();
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -34,11 +36,26 @@ function Canvas() {
     (e) => {
       e.preventDefault();
       if (!inputValue.trim()) return;
-      addNode(inputValue.trim());
+      
+      // Get center of current viewport
+      const viewport = reactFlowInstance.getViewport();
+      const { x, y, zoom } = viewport;
+      
+      // Calculate center position in flow coordinates
+      const centerX = -x / zoom + (window.innerWidth / 2) / zoom;
+      const centerY = -y / zoom + (window.innerHeight / 2) / zoom;
+      
+      // Offset to account for node size (420x280)
+      const position = {
+        x: centerX - 210, // Half of node width
+        y: centerY - 140  // Half of node height
+      };
+      
+      addNode(inputValue.trim(), position);
       setInputValue('');
       setShowOmnibox(false);
     },
-    [addNode, inputValue]
+    [addNode, inputValue, reactFlowInstance]
   );
 
   useEffect(() => {
@@ -55,6 +72,15 @@ function Canvas() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  // Notify main process when omnibox opens/closes
+  useEffect(() => {
+    if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.send('OMNIBOX_TOGGLE', showOmnibox);
+    } else if (window.ipcRenderer) {
+      window.ipcRenderer.send('OMNIBOX_TOGGLE', showOmnibox);
+    }
+  }, [showOmnibox]);
 
   return (
     <div className="w-screen h-screen relative">
