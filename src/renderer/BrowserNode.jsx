@@ -23,20 +23,22 @@ export default function BrowserNode({ id, data, selected }) {
   const sendBounds = useCallback(() => {
     if (!ipc || !contentRef.current) return;
     const rect = contentRef.current.getBoundingClientRect();
-    
-    // Account for window chrome offset - Electron renders relative to the content area
-    // getBoundingClientRect gives us correct screen coordinates
+    const scale = 1 / viewport.zoom; // counteract canvas zoom so webview stays readable
+    const width = rect.width * scale;
+    const height = rect.height * scale;
+    // Keep the view centered on the same visual rect
+    const dx = (width - rect.width) / 2;
+    const dy = (height - rect.height) / 2;
+
     const bounds = {
-      x: Math.round(rect.x),
-      y: Math.round(rect.y),
-      width: Math.round(rect.width),
-      height: Math.round(rect.height)
+      x: Math.round(rect.x - dx),
+      y: Math.round(rect.y - dy),
+      width: Math.round(width),
+      height: Math.round(height)
     };
-    
-    console.log('Sending bounds:', bounds, 'for id:', id);
-    
+
     ipc.send('TAB_UPDATE_BOUNDS', { id, bounds });
-  }, [ipc, id]);
+  }, [ipc, id, viewport.zoom]);
 
   useEffect(() => {
     if (!ipc || !contentRef.current) return;
