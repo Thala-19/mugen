@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useViewport } from '@xyflow/react';
+import { useViewport, NodeResizer } from '@xyflow/react';
 const {BaseWindow, WebContentsView} = require('electron')
 
 const useIpc = () =>
@@ -78,14 +78,27 @@ export default function BrowserNode({ id, data, selected }) {
   return (
     <div
       ref={containerRef}
-      style={{ width: 420, height: 280 }}
-      className={`rounded-xl border-2 border-dashed ${
+      style={{ width: '100%', height: '100%' }}
+      className={`rounded-xl border-2 border-line border-black text-white ${
         selected ? 'border-blue-500 shadow-lg shadow-blue-200' : 'border-slate-400'
       } bg-white/30 backdrop-blur-sm text-slate-800 overflow-hidden flex flex-col`}
     >
-      <div className="pointer-events-auto px-3 py-2 flex items-center gap-2 text-xs uppercase tracking-wide bg-white/60 border-b border-slate-200">
-        <span className="font-semibold">Tab</span>
-        <span className="truncate text-slate-500">{data?.url || 'about:blank'}</span>
+      <NodeResizer
+        minWidth={420}
+        minHeight={240}
+        isVisible={selected}
+        handleStyle={{
+          width: '12px',
+          height: '12px',
+          borderRadius: '2px'
+        }}
+        // lineStyle={{
+        //   borderWidth: '2px'
+        // }}
+      />
+      <div className="pointer-events-auto px-3 py-2 flex items-center gap-2 text-xs uppercase tracking-wide bg-black border-b border-slate-200">
+        <span className="font-bold">Tab</span>
+        <span className="truncate text-slate-500 text-white">{data?.url || 'about:blank'}</span>
       </div>
       <div ref={contentRef} className="flex-1 relative pointer-events-auto w-full h-full" style={{ minHeight: 0 }}>
         {/* WebContentsView renders here - positioned by Electron based on bounds */}
