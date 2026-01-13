@@ -96,6 +96,36 @@ ipcMain.on('TAB_UPDATE_BOUNDS', (_event, payload) => {
   lastBounds.set(id, relativeBounds); // Store the relative bounds
 });
 
+// Hide or show a WebContentsView by collapsing its bounds to 0
+ipcMain.on('TAB_wb_HIDE', (_event, payload) => {
+  const { id, hidden } = payload || {};
+  const view = viewRegistry.get(id);
+  if (!view || !mainWindow) return;
+
+  const bounds = lastBounds.get(id) || { x: 0, y: 0, width: 0, height: 0 };
+  try {
+    if (hidden) {
+      view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+    } else {
+      view.setBounds(bounds);
+    }
+  } catch {}
+});
+
+// Capture a screenshot of the WebContentsView as a data URL
+ipcMain.handle('TAB_wb_Tc_CAPTURE', async (_event, payload) => {
+  const { id } = payload || {};
+  const view = viewRegistry.get(id);
+  if (!view) return null;
+  try {
+    const image = await view.webContents.capturePage();
+    return image.toDataURL();
+  } catch (err) {
+    console.error('Failed to capture page for', id, err);
+    return null;
+  }
+});
+
 ipcMain.on('TAB_zb_wc_DESTROY', (_event, payload) => {
   const { id } = payload || {};
   const view = viewRegistry.get(id);
